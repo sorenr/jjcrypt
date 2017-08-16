@@ -3,22 +3,38 @@
 import sys
 import otp_gen
 
+# retrieve the value from the one-time-pad
+def otp_get(otp_fd,index):
+	while True:
+		try:
+			return otp_get.pad[index]
+		except KeyError:
+			# read a line from the pad
+			line = otp_fd.readline()
+			if not line:
+				print "pad too short."
+				sys.exit(-1)
+			# skip comment lines
+			if line.startswith('#'):
+				continue
+			line = line.split()
+			# add the values into the pad
+			while line:
+				otp_get.pad[int(line[0])] = int(line[1])
+				line = line[3:]
+otp_get.pad = {}
+
 def otp_crypt(direction,otp_fd,message):
 	message = message.upper()
-	print "V>",otp_gen.letters
 	cryptext = ""
 	for i in range(len(message)):
 		if message[i] not in otp_gen.letters:
 			cryptext = cryptext + message[i]
 			continue
-		while True:
-			line = otp_fd.readline()
-			if line and line[0] != '#':
-				break
-		n = int(line.split()[2])
+		n = otp_get(otp_fd,i)
 		cc = ( ord(message[i])-ord('A')+(n*direction) ) % 26
 		cryptext = cryptext + chr(cc+ord('A'))
-	print ["CT>",cryptext]
+	print cryptext
 
 if __name__=="__main__":
 	if len(sys.argv)<=1:
