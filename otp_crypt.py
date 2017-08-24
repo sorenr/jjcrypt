@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import argparse
 import otp_gen
 
 # retrieve the value from the one-time-pad
@@ -19,15 +20,15 @@ def otp_get(otp_fd, index):
             # skip comment lines
             if line.startswith('#'):
                 continue
-            line = line.split()
+            line = map(int,line.split())
             # add the values into the pad
             while line:
-                otp_get.pad[int(line[0])] = int(line[1])
-                line = line[3:]
+                otp_get.pad[line[0]] = line[1]
+                line = line[2:]
 otp_get.pad = {}
 
 
-def otp_crypt(direction, otp_fd, message):
+def otp_crypt(direction, otp_fd, message, args):
     message = message.upper()
     cryptext = ""
     for i in range(len(message)):
@@ -36,19 +37,30 @@ def otp_crypt(direction, otp_fd, message):
             continue
         n = otp_get(otp_fd, i)
         cc = (ord(message[i])-ord('A')+(n*direction)) % 26
-        cryptext = cryptext + chr(cc+ord('A'))
+        cc = chr(cc+ord('A'))
+        cryptext = cryptext + cc
+        if args.v:
+            print[i, message[i], n, cc]
     print cryptext
 
 if __name__ == "__main__":
-    if len(sys.argv) <= 1:
+    parser = argparse.ArgumentParser(
+        description='Encrypt/decrypt with a one time pad.')
+    parser.add_argument('-d', action='store_true', help='decrypt')
+    parser.add_argument('-e', action='store_true', help='encrypt')
+    parser.add_argument('-v', action='store_true', help='verbose')
+    parser.add_argument('others', nargs='*')
+    args = parser.parse_args()
+
+    if len(args.others) <= 1:
         print "Usage:", sys.argv[0], "[ -c | -d ] otp.txt message"
 
-    if sys.argv[1][1] == 'c':
+    if args.e:
         val = -1
-    elif sys.argv[1][1] == 'd':
+    elif args.d:
         val = 1
     else:
         print "Pleas select encrypt (-c) or decrypt (-d)."
         sys.exit(-1)
 
-    otp_crypt(val, open(sys.argv[2]), sys.argv[3])
+    otp_crypt(val, open(args.others[0]), args.others[1], args)
